@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  # ── N8N ────────────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      # Servidor
+      - N8N_HOST=${N8N_HOST:-0.0.0.0}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-https}
+      - N8N_EDITOR_BASE_URL=${N8N_EDITOR_BASE_URL}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+
+      # Segurança
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-true}
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+
+      # Timezone
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+
+      # ── Variáveis do Bot Pousinox ────────────────────────────
+      - ZAPI_INSTANCE_ID=${ZAPI_INSTANCE_ID}
+      - ZAPI_INSTANCE_TOKEN=${ZAPI_INSTANCE_TOKEN}
+      - ZAPI_CLIENT_TOKEN=${ZAPI_CLIENT_TOKEN}
+      - PAGBANK_URL=${PAGBANK_URL}
+      - POUSINOX_ORIGIN_CEP=${POUSINOX_ORIGIN_CEP:-37550000}
+      - MELHOR_ENVIO_TOKEN=${MELHOR_ENVIO_TOKEN}
+
+      # Redis (usado pelas credenciais do N8N — configurar também na UI)
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - redis
+    networks:
+      - pousinox_net
+
+  # ── Redis ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - pousinox_net
+    # Descomente abaixo se quiser expor o Redis localmente para debug
+    # ports:
+    #   - "6379:6379"
+
+volumes:
+  n8n_data:
+  redis_data:
+
+networks:
+  pousinox_net:
+    driver: bridge
